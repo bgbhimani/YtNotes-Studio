@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-main);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+/* Light Theme */
+:root {
+  --bg-main: #f9fafb;
+  --bg-card: #ffffff;
+
+  --sidebar: #e9d5ff;
+  --chat: #bfdbfe;
+  --studio: #bbf7d0;
+
+  --card-blue: #93c5fd;
+  --card-green: #86efac;
+
+  --text-main: #111827;
+  --border: #000000;
+}
+
+/* Dark Theme */
+.dark {
+  --bg-main: #111827;
+  --bg-card: #1f2937;
+
+  --sidebar: #5b21b6;
+  --chat: #1e3a8a;
+  --studio: #14532d;
+
+  --card-blue: #1d4ed8;
+  --card-green: #15803d;
+
+  --text-main: #f9fafb;
+  --border: #e5e7eb;
+}
+
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE + Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+/* Buttons */
+:root {
+  --btn-bg: #e5e7eb;
+  --btn-bg-hover: #d1d5db;
+}
+
+.dark {
+  --btn-bg: #374151;
+  --btn-bg-hover: #4b5563;
+}
+
+textarea::-webkit-scrollbar {
+  display: none;
+}
+
+textarea {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
