@@ -121,6 +121,7 @@
 import { useEffect, useRef, useState } from "react";
 import API from "../api";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function ChatPanel({ videoId, mode, selectedOutput }) {
     const [messages, setMessages] = useState([]);
@@ -221,7 +222,9 @@ export default function ChatPanel({ videoId, mode, selectedOutput }) {
                         className="p-3 rounded-xl"
                         style={{ background: "var(--card-blue)" }}
                     >
-                        <ReactMarkdown>{selectedOutput.answer}</ReactMarkdown>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                            <ReactMarkdown>{selectedOutput.answer}</ReactMarkdown>
+                        </div>
                     </div>
                 )}
 
@@ -243,7 +246,73 @@ export default function ChatPanel({ videoId, mode, selectedOutput }) {
                                 className="p-2 rounded-xl max-w-[80%] md:max-w-[65%] ml-auto"
                                 style={{ background: "var(--card-blue)" }}
                             >
-                                <ReactMarkdown>{m.answer}</ReactMarkdown>
+                               <ReactMarkdown
+  remarkPlugins={[remarkGfm]}
+  components={{
+    h1: ({ children }) => (
+      <h1 className="text-3xl font-bold mb-3">
+        {children}
+      </h1>
+    ),
+
+    h2: ({ children }) => (
+      <h2 className="text-2xl font-semibold mb-2">
+        {children}
+      </h2>
+    ),
+
+    h3: ({ children }) => (
+      <h3 className="text-xl font-semibold mb-2">
+        {children}
+      </h3>
+    ),
+
+    p: ({ children }) => (
+      <p className="mb-2 leading-7">
+        {children}
+      </p>
+    ),
+
+    ul: ({ children }) => (
+      <ul className="list-disc ml-5 mb-2">
+        {children}
+      </ul>
+    ),
+
+    ol: ({ children }) => (
+      <ol className="list-decimal ml-5 mb-2">
+        {children}
+      </ol>
+    ),
+
+    li: ({ children }) => (
+      <li className="mb-1">
+        {children}
+      </li>
+    ),
+
+    code: ({ children }) => (
+      <code
+        className="px-1 py-[2px] rounded bg-black/10 text-sm"
+      >
+        {children}
+      </code>
+    ),
+
+    pre: ({ children }) => (
+      <pre
+        className="p-3 rounded-xl overflow-x-auto mb-3"
+        style={{
+          background: "var(--bg-card)",
+        }}
+      >
+        {children}
+      </pre>
+    ),
+  }}
+>
+  {m.answer}
+</ReactMarkdown>
 
                                 <div className="text-xs opacity-70 mt-1">
                                     {m.provider || m.source || "ai"}

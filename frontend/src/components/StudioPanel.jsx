@@ -61,8 +61,11 @@
 import { useEffect, useState } from "react";
 import API from "../api";
 
+
 export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
     const [outputs, setOutputs] = useState([]);
+    const [ppts, setPpts] = useState([]);
+    const [pptLoading, setPptLoading] = useState(false);
 
     const session_id = localStorage.getItem("session_id");
 
@@ -84,13 +87,93 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
 
     useEffect(() => {
         fetchOutputs();
+        fetchPpts();
     }, [videoId]);
+
+    const generations = [
+        ...outputs.map((o) => ({
+            ...o,
+            type: "summary",
+        })),
+
+        ...ppts.map((p) => ({
+            ...p,
+            type: "ppt",
+        })),
+    ];
+    generations.reverse();
+    const generatePPT = async () => {
+
+        if (!videoId) return;
+
+        try {
+
+            setPptLoading(true);
+
+            const res = await API.post(
+                "/ppt/generate",
+                null,
+                {
+                    params: {
+                        video_id: videoId,
+                        session_id,
+                    },
+                    responseType: "blob",
+                }
+            );
+
+            // 🔽 download instantly
+            const url = window.URL.createObjectURL(
+                new Blob([res.data])
+            );
+
+            const link = document.createElement("a");
+
+            link.href = url;
+
+            link.setAttribute(
+                "download",
+                "presentation.pptx"
+            );
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            fetchPpts();
+
+        } catch (err) {
+
+            console.error(err);
+
+        } finally {
+
+            setPptLoading(false);
+
+        }
+    };
 
     // ❌ delete
     const deleteOutput = async (id) => {
         try {
             await API.delete(`/chat/output/${id}`);
             fetchOutputs();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchPpts = async () => {
+        try {
+            const res = await API.get("/ppt/all", {
+                params: {
+                    session_id,
+                    video_id: videoId,
+                }
+            });
+
+            setPpts((res.data.ppts || []).reverse());
+
         } catch (err) {
             console.error(err);
         }
@@ -148,46 +231,126 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
                 >
                     Summarize Video
                 </button>
+
+                <button
+                    onClick={generatePPT}
+                    className="w-full p-2 rounded-xl border transition-all duration-200 hover:scale-[1.03]"
+                    style={{
+                        background: "var(--btn-bg)",
+                        borderColor: "var(--border)",
+                    }}
+                >
+                    {pptLoading ? "Generating PPT..." : "Generate PPT"}
+                </button>
             </div>
 
             {/* OUTPUT LIST */}
             <div className="flex-1 space-y-2 overflow-y-auto no-scrollbar p-1   ">
 
-                {outputs.map((item, index) => (
-                    <div
-                        key={item._id || item.id}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl border transition-all duration-200 hover:scale-[1.02]"
-                        style={{
-                            background: "var(--btn-bg)",
-                            borderColor: "var(--border)",
-                        }}
-                    >
 
-                        {/* LEFT TEXT */}
+                <div className="flex-1 space-y-2 overflow-y-auto no-scrollbar p-1">
+
+                    {generations.map((item, index) => (
+
                         <div
-                            onClick={() => {
-                                setMode("summary");
-                                setSelectedOutput(item);
+                            key={item._id}
+                            className="flex items-center justify-between px-3 py-2 rounded-xl border transition-all duration-200 hover:scale-[1.02]"
+                            style={{
+                                background: "var(--btn-bg)",
+                                borderColor: "var(--border)",
                             }}
-                            className="cursor-pointer flex-1 pr-2 truncate"
                         >
-                            Summary {outputs.length - index}
+
+                            {/* LEFT */}
+                            <div
+                                onClick={() => {
+
+                                    // 🔹 SUMMARY
+                                    if (item.type === "summary") {
+
+                                        setMode("summary");
+                                        setSelectedOutput(item);
+
+                                    }
+
+                                    // 🔹 PPT
+                                    else if (item.type === "ppt") {
+
+                                        const link = document.createElement("a");
+
+                                        link.href = `http://127.0.0.1:8000/${item.path}`;
+
+                                        link.setAttribute(
+                                            "download",
+                                            item.filename || "presentation.pptx"
+                                        );
+
+                                        document.body.appendChild(link);
+
+                                        link.click();
+
+                                    }
+
+                                }}
+                                className="cursor-pointer flex-1 pr-2 truncate"
+                            >
+
+                                {item.type === "summary"
+                                    ? `Summary ${generations.length - index}`
+                                    : `PPT ${generations.length - index}`
+                                }
+
+                            </div>
+
+                            {/* DELETE */}
+                            <button
+                                onClick={async () => {
+
+                                    try {
+
+                                        // 🔹 DELETE SUMMARY
+                                        if (item.type === "summary") {
+
+                                            await API.delete(
+                                                `/chat/output/${item._id}`
+                                            );
+
+                                        }
+
+                                        // 🔹 DELETE PPT
+                                        else {
+
+                                            await API.delete(
+                                                `/ppt/${item._id}`
+                                            );
+
+                                        }
+
+                                        fetchOutputs();
+                                        fetchPpts();
+
+                                    } catch (err) {
+
+                                        console.error(err);
+
+                                    }
+
+                                }}
+                                className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 hover:scale-110"
+                                style={{
+                                    borderColor: "var(--border)",
+                                    background: "var(--btn-bg-hover)",
+                                }}
+                            >
+                                ✕
+                            </button>
+
                         </div>
 
-                        {/* DELETE BUTTON */}
-                        <button
-                            onClick={() => deleteOutput(item._id || item.id)}
-                            className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 hover:scale-110"
-                            style={{
-                                borderColor: "var(--border)",
-                                background: "var(--btn-bg-hover)",
-                            }}
-                        >
-                            ✕
-                        </button>
+                    ))}
 
-                    </div>
-                ))}
+                </div>
+
 
             </div>
         </div>
