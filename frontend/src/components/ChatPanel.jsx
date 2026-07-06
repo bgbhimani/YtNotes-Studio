@@ -228,6 +228,42 @@ export default function ChatPanel({ videoId, mode, selectedOutput }) {
                     </div>
                 )}
 
+                {/* 🔹 AUDIO VIEW */}
+                {mode === "audio" && selectedOutput && (
+                    <div className="space-y-4">
+                        <div
+                            className="p-3 rounded-xl"
+                            style={{ background: "var(--card-blue)" }}
+                        >
+                            <p className="text-sm font-semibold mb-2">Summary Audio</p>
+                            <audio
+                                controls
+                                className="w-full"
+                                src={selectedOutput.audioUrl}
+                            />
+                            <a
+                                href={selectedOutput.audioDownloadUrl || selectedOutput.audioUrl}
+                                download="summary.mp3"
+                                className="inline-block mt-2 text-sm underline opacity-80 hover:opacity-100"
+                            >
+                                Download MP3
+                            </a>
+                        </div>
+
+                        {selectedOutput.summary && (
+                            <div
+                                className="p-3 rounded-xl"
+                                style={{ background: "var(--bg-card)" }}
+                            >
+                                <p className="text-sm font-semibold mb-2">Summary Text</p>
+                                <div className="prose prose-sm max-w-none dark:prose-invert">
+                                    <ReactMarkdown>{selectedOutput.summary}</ReactMarkdown>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* 🔹 CHAT VIEW */}
                 {mode === "chat" &&
                     messages.map((m, i) => (
