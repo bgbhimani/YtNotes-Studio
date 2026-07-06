@@ -61,6 +61,8 @@ export default function MainScreen() {
   const [mode, setMode] = useState("chat");
   const [selectedOutput, setSelectedOutput] = useState(null);
 
+  const showCenterPanel = ["chat", "summary", "audio"].includes(mode);
+
   return (
     <div className="h-screen flex justify-center bg-[var(--bg-main)] overflow-hidden">
       
@@ -115,7 +117,7 @@ export default function MainScreen() {
           {/* CHAT */}
           <div
             className={`md:col-span-3 min-h-0 ${
-              mode !== "chat" ? "hidden md:block" : ""
+              !showCenterPanel ? "hidden md:block" : ""
             }`}
           >
             <div

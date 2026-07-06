@@ -61,6 +61,8 @@ Format:
   }}
 ]
 
+Give me Just JSON not any other word should be there.
+
 Transcript:
 {transcript}
 """

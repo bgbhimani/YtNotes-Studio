@@ -65,9 +65,21 @@ import API from "../api";
 export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
     const [outputs, setOutputs] = useState([]);
     const [ppts, setPpts] = useState([]);
+    const [voices, setVoices] = useState([]);
     const [pptLoading, setPptLoading] = useState(false);
+    const [audioLoading, setAudioLoading] = useState(false);
 
     const session_id = localStorage.getItem("session_id");
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+    const downloadVoice = (voiceId, filename = "summary.mp3") => {
+        const link = document.createElement("a");
+        link.href = `${backendUrl}/voice/download/${voiceId}`;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    };
 
     // 📥 fetch outputs
     const fetchOutputs = async () => {
@@ -88,6 +100,7 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
     useEffect(() => {
         fetchOutputs();
         fetchPpts();
+        fetchVoices();
     }, [videoId]);
 
     const generations = [
@@ -99,6 +112,11 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
         ...ppts.map((p) => ({
             ...p,
             type: "ppt",
+        })),
+
+        ...voices.map((v) => ({
+            ...v,
+            type: "audio",
         })),
     ];
     generations.reverse();
@@ -179,6 +197,53 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
         }
     };
 
+    const fetchVoices = async () => {
+        if (!videoId) return;
+
+        try {
+            const res = await API.get("/voice/all", {
+                params: {
+                    session_id,
+                    video_id: videoId,
+                },
+            });
+
+            setVoices((res.data.voices || []).reverse());
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const generateAudio = async () => {
+        if (!videoId) return;
+
+        try {
+            setAudioLoading(true);
+
+            const res = await API.post("/voice/generate", null, {
+                params: {
+                    video_id: videoId,
+                    session_id,
+                },
+            });
+
+            setSelectedOutput({
+                summary: res.data.summary,
+                audioUrl: `${backendUrl}/${res.data.path}`,
+                audioDownloadUrl: `${backendUrl}/voice/download/${res.data._id}`,
+                _id: res.data._id,
+            });
+            setMode("audio");
+
+            fetchOutputs();
+            fetchVoices();
+        } catch (err) {
+            console.error("Audio error:", err);
+        } finally {
+            setAudioLoading(false);
+        }
+    };
+
     return (
         <div className="h-full flex flex-col">
 
@@ -242,6 +307,18 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
                 >
                     {pptLoading ? "Generating PPT..." : "Generate PPT"}
                 </button>
+
+                <button
+                    onClick={generateAudio}
+                    disabled={audioLoading}
+                    className="w-full p-2 rounded-xl border transition-all duration-200 hover:scale-[1.03] disabled:opacity-60"
+                    style={{
+                        background: "var(--btn-bg)",
+                        borderColor: "var(--border)",
+                    }}
+                >
+                    {audioLoading ? "Generating Audio..." : "Generate Audio"}
+                </button>
             </div>
 
             {/* OUTPUT LIST */}
@@ -278,7 +355,7 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
 
                                         const link = document.createElement("a");
 
-                                        link.href = `http://127.0.0.1:8000/${item.path}`;
+                                        link.href = `${backendUrl}/${item.path}`;
 
                                         link.setAttribute(
                                             "download",
@@ -291,13 +368,33 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
 
                                     }
 
+                                    // 🔹 AUDIO
+                                    else if (item.type === "audio") {
+
+                                        downloadVoice(
+                                            item._id,
+                                            item.filename || "summary.mp3"
+                                        );
+
+                                        setMode("audio");
+                                        setSelectedOutput({
+                                            summary: item.summary,
+                                            audioUrl: `${backendUrl}/${item.path}`,
+                                            audioDownloadUrl: `${backendUrl}/voice/download/${item._id}`,
+                                            _id: item._id,
+                                        });
+
+                                    }
+
                                 }}
                                 className="cursor-pointer flex-1 pr-2 truncate"
                             >
 
                                 {item.type === "summary"
                                     ? `Summary ${generations.length - index}`
-                                    : `PPT ${generations.length - index}`
+                                    : item.type === "ppt"
+                                    ? `PPT ${generations.length - index}`
+                                    : `Audio ${generations.length - index}`
                                 }
 
                             </div>
@@ -318,7 +415,7 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
                                         }
 
                                         // 🔹 DELETE PPT
-                                        else {
+                                        else if (item.type === "ppt") {
 
                                             await API.delete(
                                                 `/ppt/${item._id}`
@@ -326,8 +423,18 @@ export default function StudioPanel({ setMode, setSelectedOutput, videoId }) {
 
                                         }
 
+                                        // 🔹 DELETE AUDIO
+                                        else {
+
+                                            await API.delete(
+                                                `/voice/${item._id}`
+                                            );
+
+                                        }
+
                                         fetchOutputs();
                                         fetchPpts();
+                                        fetchVoices();
 
                                     } catch (err) {
 
