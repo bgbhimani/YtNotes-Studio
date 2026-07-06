@@ -181,4 +181,5 @@ dependencies = [
     "zstandard==0.25.0",
     "groq>=1.2.0",
     "python-pptx>=1.0.2",
+    "edge-tts>=7.2.8",
 ]
